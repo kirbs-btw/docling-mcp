@@ -1,3 +1,9 @@
+## [v0.3.0](https://github.com/docling-project/docling-mcp/releases/tag/v0.3.0) - 2025-03-20
+
+### Feature
+
+* Initial release with new version number ([`f0671d0`](https://github.com/docling-project/docling-mcp/commit/f0671d070cfb32e2500453b7e693b6cd305829bd))
+
 ## [v0.2.0](https://github.com/docling-project/docling-mcp/releases/tag/v0.2.0) - 2025-03-20
 
 ### Feature

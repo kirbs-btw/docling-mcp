@@ -11,6 +11,8 @@ from docling_core.types.doc.document import (
 
 from docling_mcp.logger import setup_logger
 from docling_mcp.shared import local_document_cache, mcp
+import json
+import re
 
 # Create a default project logger
 logger = setup_logger()
@@ -202,12 +204,81 @@ def delete_document_items_at_anchors(
 
     return f"Deleted the {document_anchors} for document with key {document_key}"
 
+
 @mcp.tool
-def clean_extraction_output():
+def output_optimization(llm_output: str, schema: str) -> dict:
+    prediction = llm_output.replace(r"\_", "_")  
+    
+    prediction = fix_invalid_json(prediction)
+    
+    prediction_dict = json.loads(prediction)
+    
+    prediction_dict = validate_data_against_schema(prediction_dict, schema)
+    
+    return prediction_dict
+
+@mcp.tool    
+def fix_invalid_json(json_text):
+    # Regex pattern to find cases where a key is followed by an object containing only a string
+    pattern = r'("\w+":)\s*\{\s*"([^"]+)"\s*\}'
+
+    # Replace the invalid JSON structure with a proper key-value pair
+    fixed_json_text = re.sub(pattern, r'\1 "\2"', json_text)
+    return fixed_json_text
+
+@mcp.tool
+def validate_data_against_schema(data: dict, schema: dict) -> dict:
     """
-    needs schema
-    needs the text
-    returns the extraion json
-    as json i guess?
+    Recursively validates and sanitizes data from an LLM so that it fits the specified schema.
+
+    For each key in the schema:
+      - If the key is missing in data, it is added with an empty version built from the schema.
+      - If the key is present:
+          * If the expected value (from schema) is a dict, the function validates the sub-dictionary recursively.
+          * Otherwise, it ensures the value is either a string or a list of strings.
+            If not, it falls back to the default value from the schema.
+
+    Extra keys in data that are not in the schema are removed.
     """
-    pass
+    validated = {}
+    for key, expected in schema.items():
+        if key not in data:
+            # Key is missing; create an empty version based on the expected schema
+            validated[key] = _make_empty_value(expected)
+        else:
+            candidate = data[key]
+            # If the schema expects a dict, handle recursively
+            if isinstance(expected, dict):
+                if isinstance(candidate, dict):
+                    validated[key] = validate_data_against_schema(candidate, expected)
+                else:
+                    validated[key] = _make_empty_value(expected)
+            else:
+                # For non-dict values, ensure candidate is a string or list of strings
+                if _is_valid_value_type(candidate):
+                    validated[key] = candidate
+                else:
+                    validated[key] = expected
+    return validated
+
+@mcp.tool
+def _make_empty_value(default):
+    """
+    Creates an "empty" version of the default value from the schema.
+    If the default is a dict, it recursively builds an empty dict with the same structure.
+    Otherwise, it returns the default (which can be an empty string or list, etc.).
+    """
+    if isinstance(default, dict):
+        return {k: _make_empty_value(v) for k, v in default.items()}
+    return default
+
+@mcp.tool
+def _is_valid_value_type(value):
+    """
+    Checks whether the value is either a string or a list of strings.
+    """
+    if isinstance(value, str):
+        return True
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return True
+    return False

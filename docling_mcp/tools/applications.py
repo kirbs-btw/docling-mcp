@@ -142,7 +142,7 @@ if (
         
         llm_output = extraction_model.complete(extraction_prompt)
         
-        cleaned_output = clean_extraction(llm_output)
+        # cleaned_output = clean_extraction(llm_output)
         
         return cleaned_output
         

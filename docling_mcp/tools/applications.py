@@ -1,7 +1,7 @@
 """This module defines applications."""
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 from docling_core.types.doc.document import DoclingDocument
 
@@ -116,3 +116,35 @@ if (
                     message=f"Unexpected response type: {type(response)}",
                 )
             )
+
+if (
+    os.getenv("OLLAMA_EXTRACTION_MODEL") != ""
+):
+    import json
+
+    from mcp.shared.exceptions import McpError
+    from mcp.types import INTERNAL_ERROR, ErrorData
+
+    from docling_mcp.shared import extraction_model
+    
+    
+    @mcp.tool()
+    def kv_extraction(text: str, extraction_schema: str, additional_instructions: Optional[str] = "") -> str:
+        extraction_prompt = f"""
+            <|input|>\n### Instruction: Extract strings from the text matching the given schema. The output must strictly follow the schema and contain only the exact strings as they appear in the text—no paraphrasing. If information is missing, return "" for empty strings, [] for empty arrays, or [] for an empty list of objects. Provide the output as JSON only, with no additional comments or explanations.
+            {additional_instructions}\n
+            ### Schema:\n
+            {extraction_schema}
+            ### Text:\n
+            {text}
+            \n\n<|output|>"
+        """
+        
+        llm_output = extraction_model.complete(extraction_prompt)
+        
+        cleaned_output = clean_extraction(llm_output)
+        
+        return cleaned_output
+        
+        # cleaning the output
+        # returning the str of an extraction schema 

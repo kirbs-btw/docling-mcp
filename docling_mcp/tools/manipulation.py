@@ -201,3 +201,13 @@ def delete_document_items_at_anchors(
     doc.delete_items(node_items=items)
 
     return f"Deleted the {document_anchors} for document with key {document_key}"
+
+@mcp.tool
+def clean_extraction_output():
+    """
+    needs schema
+    needs the text
+    returns the extraion json
+    as json i guess?
+    """
+    pass

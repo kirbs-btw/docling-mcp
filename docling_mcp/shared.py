@@ -28,6 +28,7 @@ local_stack_cache: dict[str, list[NodeItem]] = {}
 
 OLLAMA_MODEL: str | None = os.getenv("OLLAMA_MODEL")
 EMBEDDING_MODEL: str | None = os.getenv("EMBEDDING_MODEL")
+OLLAMA_EXTRACTION_MODEL: str | None = os.getenv("OLLAMA_EXTRACTION_MODEL")
 
 
 if (
@@ -38,7 +39,8 @@ if (
     embed_model = HuggingFaceEmbedding(model_name=EMBEDDING_MODEL)
     Settings.embed_model = embed_model
     Settings.llm = Ollama(model=OLLAMA_MODEL, request_timeout=120.0)
-
+    
+    
     node_parser = DoclingNodeParser()
 
     embed_dim = len(embed_model.get_text_embedding("hi"))
@@ -48,3 +50,7 @@ if (
     )
 
     local_index_cache: dict[str, VectorStoreIndex] = {}
+if (
+    OLLAMA_EXTRACTION_MODEL is not None
+):
+    extraction_model = Ollama(model=OLLAMA_EXTRACTION_MODEL, request_timeout=120.0)
